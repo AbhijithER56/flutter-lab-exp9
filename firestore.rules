@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // TEST MODE (development only), same as Firebase Console "Start in test mode".
+    // Anyone with the project config can read/write until the date below,
+    // after which all client requests are denied.
+    // Before real use, replace with rules that require authentication.
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2026, 11, 29);
+    }
+  }
+}

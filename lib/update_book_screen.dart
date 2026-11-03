@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'main.dart' show kCobalt, kViolet, kPink, kInk, kMuted;
+
 /// Searches the Cloud Firestore collection "books" by title and updates the
 /// "copies" field of the matching document. Books are added manually in the
 /// Firebase Console; this screen never adds new books and never changes the
@@ -162,21 +164,90 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
     }
   }
 
+  // Quick adjust: fills the copies field with the current count +/- delta.
+  // It only edits the text box; nothing is written until Update is pressed.
+  void _nudge(int delta) {
+    final current = _parseCopies(_book?['copies']) ?? 0;
+    final next = (current + delta).clamp(0, 9999);
+    setState(() => _copiescontroller.text = '$next');
+  }
+
+  // ---------------- UI ----------------
+  Widget _buildBanner() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [kCobalt, kViolet],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.inventory_2, color: Colors.white, size: 38),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Stock Desk',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Find a title, then set its new copy count.',
+                  style: TextStyle(color: Color(0xFFD5DBFF), fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _decoration(String label, IconData icon) {
+    OutlineInputBorder border(Color c, [double w = 1]) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: c, width: w),
+        );
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: kCobalt),
+      filled: true,
+      fillColor: Colors.white,
+      border: border(const Color(0xFFD9DEF2)),
+      enabledBorder: border(const Color(0xFFD9DEF2)),
+      focusedBorder: border(kCobalt, 2),
+    );
+  }
+
   Widget _buildButton({
     required String label,
     required IconData icon,
     required bool loading,
+    required Color color,
     required VoidCallback onPressed,
   }) {
     return SizedBox(
-      height: 48,
-      child: ElevatedButton.icon(
+      height: 50,
+      child: FilledButton.icon(
         onPressed: _busy ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.deepPurple,
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: Colors.deepPurple.shade200,
+          disabledBackgroundColor: color.withValues(alpha: 0.5),
           disabledForegroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         icon: loading
             ? const SizedBox(
@@ -203,13 +274,7 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
           onSubmitted: (_) {
             if (!_busy) _searchBook();
           },
-          decoration: const InputDecoration(
-            labelText: "Enter Book Title",
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.menu_book),
-            filled: true,
-            fillColor: Colors.white,
-          ),
+          decoration: _decoration("Enter Book Title", Icons.menu_book),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -219,13 +284,7 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
           onSubmitted: (_) {
             if (!_busy) _updateCopies();
           },
-          decoration: const InputDecoration(
-            labelText: "Enter Updated Copies",
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.numbers),
-            filled: true,
-            fillColor: Colors.white,
-          ),
+          decoration: _decoration("Enter Updated Copies", Icons.numbers),
         ),
         const SizedBox(height: 16),
         Row(
@@ -235,6 +294,7 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
                 label: "Search",
                 icon: Icons.search,
                 loading: _searching,
+                color: kCobalt,
                 onPressed: _searchBook,
               ),
             ),
@@ -244,6 +304,7 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
                 label: "Update",
                 icon: Icons.edit,
                 loading: _updating,
+                color: kPink,
                 onPressed: _updateCopies,
               ),
             ),
@@ -260,7 +321,7 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         border: Border.all(color: color),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
@@ -284,38 +345,121 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, Widget value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(icon, size: 18, color: kCobalt),
+          const SizedBox(width: 10),
           SizedBox(
-            width: 140,
+            width: 128,
             child: Text(
-              "$label:",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              label,
+              style: const TextStyle(color: kMuted, fontSize: 13),
             ),
           ),
-          Expanded(child: Text(value)),
+          Expanded(child: value),
         ],
       ),
     );
   }
 
+  Widget _buildNudgeChip(String label, int delta) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: _busy ? null : () => _nudge(delta),
+      backgroundColor: Colors.white,
+      side: const BorderSide(color: Color(0xFFD9DEF2)),
+      labelStyle: const TextStyle(color: kCobalt, fontWeight: FontWeight.w700),
+    );
+  }
+
   Widget _buildBookCard(Map<String, dynamic> book) {
     final copies = _parseCopies(book['copies']);
+    final inStock = copies != null && copies > 0;
     return Card(
       color: Colors.white,
-      elevation: 2,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: Color(0xFFE1E5F5)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow("Title", "${book['title'] ?? '-'}"),
-            _buildDetailRow("Author", "${book['author'] ?? '-'}"),
-            _buildDetailRow("Copies Available", "${copies ?? '-'}"),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "${book['title'] ?? '-'}",
+                    style: const TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                      color: kInk,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: (inStock ? kCobalt : kPink).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    inStock ? 'In stock' : 'Out of stock',
+                    style: TextStyle(
+                      color: inStock ? kCobalt : kPink,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Divider(color: Color(0xFFE1E5F5), height: 1),
+            const SizedBox(height: 6),
+            _buildDetailRow(
+              Icons.person_outline,
+              "Author",
+              Text(
+                "${book['author'] ?? '-'}",
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            _buildDetailRow(
+              Icons.layers_outlined,
+              "Copies Available",
+              Text(
+                "${copies ?? '-'}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  color: kInk,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Quick adjust (fills the copies box)',
+              style: TextStyle(color: kMuted, fontSize: 11),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                _buildNudgeChip('-5', -5),
+                _buildNudgeChip('-1', -1),
+                _buildNudgeChip('+1', 1),
+                _buildNudgeChip('+5', 5),
+              ],
+            ),
           ],
         ),
       ),
@@ -325,12 +469,7 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        title: const Text("Update Book Copies"),
-      ),
+      appBar: AppBar(title: const Text("Update Book Copies")),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -342,6 +481,8 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _buildBanner(),
+                  const SizedBox(height: 18),
                   _buildInputs(),
                   const SizedBox(height: 20),
                   if (_message.isNotEmpty) ...[
@@ -351,7 +492,9 @@ class _UpdateBookScreenState extends State<UpdateBookScreen> {
                   if (_searching)
                     const Padding(
                       padding: EdgeInsets.all(24),
-                      child: Center(child: CircularProgressIndicator()),
+                      child: Center(
+                        child: CircularProgressIndicator(color: kCobalt),
+                      ),
                     )
                   else if (_book != null)
                     _buildBookCard(_book!),

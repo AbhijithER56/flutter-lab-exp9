@@ -4,6 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'update_book_screen.dart';
 
+// Palette: cobalt ink with a hot-pink action colour on a cool page
+const Color kCobalt = Color(0xFF2740D8);
+const Color kViolet = Color(0xFF5B3DF5);
+const Color kPink = Color(0xFFFF3D81);
+const Color kPage = Color(0xFFF2F4FB);
+const Color kInk = Color(0xFF1B2250);
+const Color kMuted = Color(0xFF6C7599);
+
 Future<void> main() async {
   // Required before calling native code (Firebase) ahead of runApp().
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +43,14 @@ class LibraryApp extends StatelessWidget {
       title: 'Update Book Copies',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: kCobalt),
+        scaffoldBackgroundColor: kPage,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: kCobalt,
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          elevation: 0,
+        ),
         useMaterial3: true,
       ),
       home: initError == null
@@ -55,11 +70,7 @@ class _FirebaseErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        title: const Text('Update Book Copies'),
-      ),
+      appBar: AppBar(title: const Text('Update Book Copies')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

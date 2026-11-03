@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Desk – Experiment 9 | Update Book Copies</title>
+  <meta name="description" content="Flutter Lab Experiment 9: search a book by title and update only its copies field (preview uses an in-page copy of the collection)." />
+  <style>
+    :root {
+      --cobalt: #2740D8; --violet: #5B3DF5; --pink: #FF3D81; --page: #F2F4FB;
+      --ink: #1B2250; --muted: #6C7599; --line: #E1E5F5;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink);
+      background: #cfd6f3; min-height: 100vh; padding: 24px 16px;
+      display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 24px;
+    }
+    .phone { width: 390px; max-width: 100%; height: 800px; background: var(--page); border: 8px solid #10143a; border-radius: 34px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(39,64,216,.35); }
+    .app-bar { background: var(--cobalt); color: #fff; text-align: center; padding: 20px 12px 14px; font-weight: 700; font-size: 18px; flex-shrink: 0; }
+    .body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; }
+
+    .banner { background: linear-gradient(135deg, var(--cobalt), var(--violet)); color: #fff; border-radius: 24px; padding: 18px; display: flex; gap: 14px; align-items: center; }
+    .banner .em { font-size: 36px; }
+    .banner h1 { font-size: 20px; font-weight: 800; }
+    .banner p { font-size: 12px; color: #D5DBFF; margin-top: 4px; }
+
+    .inputs { display: flex; flex-direction: column; gap: 12px; }
+    .inputs label { position: relative; display: block; }
+    .inputs .ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); }
+    .inputs input { width: 100%; padding: 16px 16px 16px 44px; border-radius: 16px; border: 1px solid #D9DEF2; background: #fff; font-size: 15px; color: var(--ink); outline: none; }
+    .inputs input:focus { border: 2px solid var(--cobalt); padding: 15px 15px 15px 43px; }
+    .btns { display: flex; gap: 12px; }
+    .btns button { flex: 1; height: 50px; border: none; border-radius: 16px; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .btns button:active { transform: scale(.97); }
+    .btns button:disabled { opacity: .5; }
+    #search { background: var(--cobalt); } #update { background: var(--pink); }
+
+    .msg { display: none; align-items: center; gap: 8px; padding: 12px; border-radius: 14px; font-size: 16px; font-weight: 600; border: 1px solid; }
+    .msg.ok { display: flex; color: #2e7d32; background: rgba(46,125,50,.08); }
+    .msg.bad { display: flex; color: #e53935; background: rgba(229,57,53,.08); }
+    .spin { width: 30px; height: 30px; border: 3px solid #d9defa; border-top-color: var(--cobalt); border-radius: 50%; margin: 18px auto; animation: r .8s linear infinite; }
+    @keyframes r { to { transform: rotate(360deg); } }
+
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 18px; animation: rise .3s ease; }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+    .top h2 { font-size: 21px; font-weight: 800; }
+    .pill { font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 20px; white-space: nowrap; }
+    .pill.in { background: rgba(39,64,216,.12); color: var(--cobalt); }
+    .pill.out { background: rgba(255,61,129,.12); color: var(--pink); }
+    .row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+    .row .k { width: 120px; color: var(--muted); font-size: 13px; }
+    .row .n { font-size: 20px; font-weight: 900; }
+    .hint { color: var(--muted); font-size: 11px; margin: 10px 0 6px; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chips button { background: #fff; border: 1px solid #D9DEF2; color: var(--cobalt); font-weight: 700; border-radius: 10px; padding: 7px 14px; cursor: pointer; }
+
+    .console { width: 320px; max-width: 100%; background: #10143a; color: #cdd3ff; border-radius: 20px; padding: 18px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .console h3 { font-family: system-ui, sans-serif; font-size: 15px; color: #ff7aa8; margin-bottom: 4px; }
+    .console p { color: #8c95d6; margin-bottom: 12px; line-height: 1.5; }
+    .console pre { background: #0a0d28; border-radius: 10px; padding: 10px; white-space: pre-wrap; }
+    .console .hl { color: #ff7aa8; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="app-bar">Update Book Copies</div>
+    <div class="body">
+      <div class="banner">
+        <div class="em">📦</div>
+        <div><h1>Stock Desk</h1><p>Find a title, then set its new copy count.</p></div>
+      </div>
+
+      <div class="inputs">
+        <label><span class="ico">📖</span><input id="title" placeholder="Enter Book Title" autocomplete="off" /></label>
+        <label><span class="ico">🔢</span><input id="copies" inputmode="numeric" placeholder="Enter Updated Copies" autocomplete="off" /></label>
+        <div class="btns"><button id="search">🔍 Search</button><button id="update">✏️ Update</button></div>
+      </div>
+
+      <div class="msg" id="msg"></div>
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <aside class="console">
+    <h3>☁️ books collection (mock)</h3>
+    <p>Update writes <b>only</b> the <span class="hl">copies</span> field of the document you searched. Title and author never change.</p>
+    <pre id="docs"></pre>
+  </aside>
+
+<script>
+  const $ = id => document.getElementById(id);
+  // Copy of the Firestore "books" collection used for the demo
+  const books = [
+    { id: 'sfrIeHEIAdS1B7PnEF16', title: 'Python Programming', author: 'David', copies: 0 },
+    { id: 'qAZiAeDTp1wdnp1OrUig', title: 'Flutter Basics', author: 'John Smith', copies: 5 },
+    { id: 'Zk3PmL0vXn82sQa1TbWe', title: 'Artificial Intelligence', author: 'Andrew', copies: 3 },
+  ];
+  let current = null, busy = false;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const normalize = v => v.trim().replace(/\s+/g, ' ').toLowerCase();
+
+  function say(text, bad) {
+    const m = $('msg'); m.textContent = (bad ? '⚠️ ' : '✅ ') + text; m.className = 'msg ' + (bad ? 'bad' : 'ok');
+  }
+  function clearMsg() { $('msg').className = 'msg'; }
+  function setBusy(v) { busy = v; $('search').disabled = v; $('update').disabled = v; }
+  function showDocs() {
+    $('docs').innerHTML = books.map(b => `{ <span class="hl">${esc(b.id)}</span>\n  title: "${esc(b.title)}",\n  author: "${esc(b.author)}",\n  copies: <span class="hl">${b.copies}</span> }`).join('\n\n');
+  }
+
+  function renderCard() {
+    if (!current) { $('result').innerHTML = ''; return; }
+    const b = current, stock = b.copies > 0;
+    $('result').innerHTML = `
+      <div class="card">
+        <div class="top"><h2>${esc(b.title)}</h2><span class="pill ${stock ? 'in' : 'out'}">${stock ? 'In stock' : 'Out of stock'}</span></div>
+        <div class="row"><span>👤</span><span class="k">Author</span><b>${esc(b.author)}</b></div>
+        <div class="row"><span>🗂️</span><span class="k">Copies Available</span><span class="n">${b.copies}</span></div>
+        <div class="hint">Quick adjust (fills the copies box)</div>
+        <div class="chips">${[-5, -1, 1, 5].map(d => `<button data-d="${d}">${d > 0 ? '+' + d : d}</button>`).join('')}</div>
+      </div>`;
+    $('result').querySelectorAll('[data-d]').forEach(btn => btn.onclick = () => {
+      $('copies').value = Math.max(0, Math.min(9999, current.copies + Number(btn.dataset.d)));
+    });
+  }
+
+  // READ: books.get() then match the normalised title
+  $('search').onclick = () => {
+    if (busy) return;
+    const q = normalize($('title').value);
+    current = null; renderCard(); clearMsg();
+    if (!q) return say('Please enter a book title to search', true);
+    setBusy(true); $('result').innerHTML = '<div class="spin"></div>';
+    setTimeout(() => {
+      setBusy(false);
+      current = books.find(b => normalize(b.title) === q) || null;
+      renderCard();
+      if (!current) say('Book not found', true);
+    }, 450);
+  };
+
+  // UPDATE: only the copies field changes
+  $('update').onclick = () => {
+    if (busy) return;
+    clearMsg();
+    if (!current) return say('Please search for a book before updating', true);
+    const t = $('copies').value.trim();
+    if (!t) return say('Please enter the updated number of copies', true);
+    const n = Number(t);
+    if (!Number.isInteger(n) || n < 0) return say('Copies must be a whole number (0 or more)', true);
+    setBusy(true);
+    setTimeout(() => {
+      setBusy(false);
+      current.copies = n;
+      $('copies').value = '';
+      renderCard(); showDocs();
+      say('Book updated successfully', false);
+    }, 450);
+  };
+
+  showDocs();
+</script>
+</body>
+</html>
